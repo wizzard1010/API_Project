@@ -1,0 +1,6 @@
+litestar[standard]
+uvicorn
+sqlalchemy
+asyncpg
+advanced-alchemy
+psycopg[binary]

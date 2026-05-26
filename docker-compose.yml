@@ -1,0 +1,28 @@
+services:
+    api:
+      build: .
+      container_name: app_api
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env.example
+      volumes:
+        - .:/app
+        - ./uploads:/app/uploads
+
+
+    db:
+      image: postgres:16
+      container_name: app_db
+      environment: 
+        POSTGRES_DB: api_db
+        POSTGRES_USER: james
+        POSTGRES_PASSWORD: james123
+      ports:
+        - "5432:5432"
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+

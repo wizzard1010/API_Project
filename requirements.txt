@@ -4,3 +4,4 @@ sqlalchemy
 asyncpg
 advanced-alchemy
 psycopg[binary]
+pydantic[email]

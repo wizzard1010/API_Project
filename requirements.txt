@@ -5,3 +5,4 @@ asyncpg
 advanced-alchemy
 psycopg[binary]
 pydantic[email]
+litestar[jwt]

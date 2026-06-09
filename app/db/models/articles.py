@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 import enum
 
-from sqlalchemy import Boolean, Enum, String, DateTime, Text, ForeignKey
+from sqlalchemy import Enum, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from datetime import datetime
@@ -19,17 +19,16 @@ class Article(Base):
     body: Mapped[str] =  mapped_column(Text)
     
     #Fkeys
-    category_id: Mapped[UUID| None] = mapped_column(ForeignKey("categories.id"), nullable=False)
-    author_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=False)
-    
-    #relationships
-    category = relationship("Category")
-    author = relationship ("User")
+    category_id: Mapped[UUID] = mapped_column(ForeignKey("categories.id"), nullable=False)
+    author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     
     visibility: Mapped[ArticlesVisibility] = mapped_column(Enum(ArticlesVisibility), default=ArticlesVisibility.PUBLIC)
     
-    photo_path: Mapped[str | None] = mapped_column(String(500), nullable=False)
+    photo_path: Mapped[str] = mapped_column(String(500), nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     
+        #relationships
+    category = relationship("Category")
+    author = relationship ("User")

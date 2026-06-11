@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from uuid import UUID
+from datetime import datetime
+from app.db.models.user import UserRole
 
 @dataclass
 class RegisterRequest:
@@ -9,3 +12,24 @@ class RegisterRequest:
 class LoginRequest:
     email: str
     password: str
+    
+@dataclass
+class UserResponse:
+    id: UUID
+    email: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    
+@dataclass
+class ForgetPassword:
+    email: str
+    
+@dataclass
+class ResetPassword:
+    token: str
+    new_password: str
+    
+
+    

@@ -7,7 +7,9 @@ from app.api.v1.health_check import health_check
 
 from app.api.v1.accounts.controller import (
     register_user,
-    login
+    login,
+    forget_password,
+    Reset_password,
 )
 
 from app.api.v1.categories.controller import Create_category
@@ -22,7 +24,9 @@ v1_router = Router(
         register_user,
         login,
         create_article,
-        Create_category, 
+        Create_category,
+        forget_password,
+        Reset_password
     ]
 )
 

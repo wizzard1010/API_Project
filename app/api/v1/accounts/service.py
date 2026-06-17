@@ -1,11 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models.user import User
+from app.db.models.accounts import User
 from uuid import UUID
 from datetime import timedelta
-from litestar.security.jwt import JWTAuth, Token
+from litestar.security.jwt import JWTAuth, Token, OAuth2PasswordBearerAuth, OAuth2Login 
 from litestar.connection import ASGIConnection
-
+from datetime import datetime
 import os
 
 async def create_user(
@@ -31,7 +31,7 @@ async def create_user(
     
     return user
 
-async def login_user(
+async def authenticate_user(
     session: AsyncSession,
     email: str,
     password: str
@@ -63,14 +63,14 @@ jwt_auth = JWTAuth[User](
     retrieve_user_handler= retrieve_user_handler,
 )
 
-async def create_password_token(user_id:UUID)-> str:
+async def user_access_token(user_id:UUID)-> str:
     token = jwt_auth.create_token(
         identifier=str(user_id),
         token_expiration=timedelta(minutes=JWT_EXPIRES_MIN),
     )
     return token
 
-async def generate_password_reset_token(
+async def generate_password_reset_with_token(
     session: AsyncSession,
     email:str
 )-> str:
@@ -81,7 +81,7 @@ async def generate_password_reset_token(
     if not user:
         raise ValueError("User not found")
     
-    token = await create_password_token(user.id)
+    token = await user_access_token(user.id)
     if not PASSWORD_RESET_BASE_URL:
         raise ValueError("PASSWORD_RESET_BASE_URL is not configured")
 
@@ -95,12 +95,32 @@ async def password_reset(
     new_password: str
 )-> None:
     decode_token = Token.decode(encoded_token=token, secret=JWT_SECRET, algorithm=JWT_ALG)
-    
+        
     user_id = UUID(decode_token.sub)
+    user = await session.get(User, user_id)
+        
+    if not user:
+        raise ValueError("User not found")
+    user.password_hash = new_password
+    user.updated_at = datetime.now()
+    await session.commit()
+    
+async def get_current_user(
+    session:AsyncSession,
+    token: str,
+)-> User:
+    
+    decoded_token = Token.decode(
+        encoded_token=token,
+        secret=JWT_SECRET,
+        algorithm=JWT_ALG
+    )
+    
+    user_id = UUID(decoded_token.sub)
     user = await session.get(User, user_id)
     
     if not user:
         raise ValueError("User not found")
-    user.password_hash = new_password
+    return user
+
     
-    await session.commit()

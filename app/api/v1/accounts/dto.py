@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 from datetime import datetime
-from app.db.models.user import UserRole
+from app.db.models.accounts import UserRole
 
 @dataclass
 class RegisterRequest:
@@ -12,6 +12,10 @@ class RegisterRequest:
 class LoginRequest:
     email: str
     password: str
+     
+@dataclass
+class LoginResponse:
+    access_token: str
     
 @dataclass
 class UserResponse:
@@ -31,5 +35,4 @@ class ResetPassword:
     token: str
     new_password: str
     
-
     

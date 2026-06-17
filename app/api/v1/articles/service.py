@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.articles import Article
 from app.db.models.category import Category
-from app.db.models.user import User
+from app.db.models.accounts import User
 from uuid import UUID
 
 

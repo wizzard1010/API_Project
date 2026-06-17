@@ -19,7 +19,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 
 from app.db.models.base import Base
-from app.db.models.user import User
+from app.db.models.accounts import User
 from app.db.models.articles import Article
 from app.db.models.category import Category
 

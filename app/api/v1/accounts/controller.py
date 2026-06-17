@@ -1,15 +1,26 @@
 from litestar import post, get, Request
-from litestar.exceptions import HTTPException
+from litestar.exceptions import HTTPException,NotAuthorizedException
+from litestar.middleware import (
+    AbstractAuthenticationMiddleware,
+    AuthenticationResult,
+)
 
-from app.db.models.user import User
-from app.api.v1.accounts.service import create_user, login_user, generate_password_reset_token, password_reset
+from app.db.models.accounts import User
+from app.api.v1.accounts.service import (
+    create_user, 
+    authenticate_user,
+    user_access_token,
+    generate_password_reset_with_token,
+    password_reset, 
+    get_current_user)
 
 from app.api.v1.accounts.dto import (
     RegisterRequest,
     LoginRequest,
     UserResponse,
     ForgetPassword,
-    ResetPassword
+    ResetPassword,
+    LoginResponse
 )
 
 from pydantic import BaseModel
@@ -17,13 +28,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from uuid import UUID
-    
-
-# testing
-  
-# @get("/users")
-# async def user_handler() -> dict[str, str]:
-#     return {"modules": "users"}
 
 @post("/auth/register")
 async def register_user(
@@ -50,25 +54,23 @@ async def register_user(
     
 
 @post("/auth/login")
-async def login(
+async def Authenticate_user(
     data: LoginRequest,
     db_session: AsyncSession
-) -> dict[str, str]:
+) -> LoginResponse:
     try:
-        user = await login_user(
-            session = db_session,
-            email = data.email,
-            password = data.password
+        user = await authenticate_user(
+            session=db_session,
+            email=data.email,
+            password=data.password,
         )
-    
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid username or password")
+        raise HTTPException(status_code=400, detail="Invaid username or password")
+    token = await user_access_token(user.id)
     
-    return {
-        "id": str(user.id),
-        "email": user.email,
-        "role" : user.role
-    }
+    return LoginResponse(
+        access_token=token
+    )
 
 @post("/auth/password/forget")
 async def forget_password(
@@ -76,7 +78,7 @@ async def forget_password(
     db_session: AsyncSession
 ) -> dict[str, str]:
     try :
-        reset_link = await generate_password_reset_token(
+        reset_link = await generate_password_reset_with_token(
         session = db_session,
         email = data.email
     )
@@ -87,7 +89,6 @@ async def forget_password(
         "reset_link": reset_link
     }
 
-###test test
 @post("/auth/password/reset")
 async def Reset_password(
     data:ResetPassword,
@@ -104,3 +105,37 @@ async def Reset_password(
     
     return "Password reset successful"
 
+@get("/users/me")
+async def Get_user_me(
+    request: Request,
+    db_session: AsyncSession
+)-> UserResponse:
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header:
+        raise NotAuthorizedException()
+    if not auth_header.startswith("Bearer "):
+        raise NotAuthorizedException()
+    
+    token = auth_header.replace("Bearer", "")
+    try:
+        user = await get_current_user(
+            session= db_session,
+            token = token,
+        )
+    except:
+        raise HTTPException(status_code=400, detail="User not found")
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        updated_at=user.updated_at
+    )
+    
+    
+    # try:
+    #     await get_current_user(
+    #         session = db_session,
+    #         token = request.token

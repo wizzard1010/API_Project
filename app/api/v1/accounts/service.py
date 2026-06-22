@@ -1,12 +1,14 @@
+from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models.accounts import User
+from app.db.models.accounts import User, UserRole
 from uuid import UUID
-from datetime import timedelta
-from litestar.security.jwt import JWTAuth, Token, OAuth2PasswordBearerAuth, OAuth2Login 
-from litestar.connection import ASGIConnection
 from datetime import datetime
-import os
+from litestar.security.jwt import Token
+from litestar.exceptions import HTTPException
+from app.db.config import (JWT_ALG, JWT_SECRET, JWT_EXPIRES_MIN, PASSWORD_RESET_BASE_URL)
+from app.api.v1.accounts.security import user_access_token
+
 
 async def create_user(
     session: AsyncSession,
@@ -47,29 +49,6 @@ async def authenticate_user(
     
     return user
 
-
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me")
-JWT_EXPIRES_MIN = int(os.getenv("JWT_EXPIRES_MIN", "60"))
-PASSWORD_RESET_BASE_URL= os.getenv("PASSWORD_RESET_BASE_URL")
-JWT_ALG = os.getenv("JWT_ALG", "HS256")
-
-
-async def retrieve_user_handler(token: Token, connection:ASGIConnection)-> User:
-    return User(id=UUID(token.sub))
-
-
-jwt_auth = JWTAuth[User](
-    token_secret=JWT_SECRET,
-    retrieve_user_handler= retrieve_user_handler,
-)
-
-async def user_access_token(user_id:UUID)-> str:
-    token = jwt_auth.create_token(
-        identifier=str(user_id),
-        token_expiration=timedelta(minutes=JWT_EXPIRES_MIN),
-    )
-    return token
-
 async def generate_password_reset_with_token(
     session: AsyncSession,
     email:str
@@ -81,7 +60,7 @@ async def generate_password_reset_with_token(
     if not user:
         raise ValueError("User not found")
     
-    token = await user_access_token(user.id)
+    token = user_access_token(user.id)
     if not PASSWORD_RESET_BASE_URL:
         raise ValueError("PASSWORD_RESET_BASE_URL is not configured")
 
@@ -104,23 +83,45 @@ async def password_reset(
     user.password_hash = new_password
     user.updated_at = datetime.now()
     await session.commit()
+
+def role(user: User, roles: list[UserRole]) -> None:
+    if user.role not in roles:
+        raise HTTPException(status_code=403, detail="Invalid User")
+
+async def get_user_by_id(
+    session: AsyncSession,
+    user_id: UUID    
+)-> Optional[User]:
+    result = await session.execute(select(User).where(User.id == user_id))
+    user =  result.scalar_one_or_none()
     
-async def get_current_user(
-    session:AsyncSession,
-    token: str,
+    return user
+
+async def get_all_user(session: AsyncSession)-> list[User]:
+    result = await session.execute(select(User))
+    users = list(result.scalars().all())
+    
+    return users
+
+async def update_admin_user(
+    session: AsyncSession,
+    user_id: UUID,
+    role: UserRole| None=None,
+    is_active: bool| None=None,
 )-> User:
     
-    decoded_token = Token.decode(
-        encoded_token=token,
-        secret=JWT_SECRET,
-        algorithm=JWT_ALG
-    )
-    
-    user_id = UUID(decoded_token.sub)
     user = await session.get(User, user_id)
     
     if not user:
         raise ValueError("User not found")
-    return user
-
     
+    if role is not None:
+        user.role = role
+    if is_active is not None:
+        user.is_active = is_active
+    
+    user.updated_at = datetime.now()
+    await session.commit()
+    await session.refresh(user)
+    
+    return user

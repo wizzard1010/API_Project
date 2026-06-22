@@ -35,4 +35,7 @@ class ResetPassword:
     token: str
     new_password: str
     
-    
+@dataclass
+class AdminUserUpdate:
+    role: str | None = None
+    is_active: bool| None = None

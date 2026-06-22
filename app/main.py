@@ -13,6 +13,7 @@ from app.api.v1.accounts.controller import (
     forget_password,
     Reset_password,
     Get_user_me,
+    update_admin,
     
 )
 
@@ -31,24 +32,25 @@ v1_router = Router(
         Create_category,
         forget_password,
         Reset_password,
-        Get_user_me
+        Get_user_me,
+        update_admin
     ]
 )
 
 app =Litestar(
     route_handlers=[v1_router, health_check],
     plugins=[sqlalchemy_plugin],
-    # openapi_config=OpenAPIConfig(
-    #     title="my api",
-    #     version="1.0.0",
-    #     security=[{"BearerToken": []}],
-    #     components=Components(
-    #         security_schemes={
-    #             "BearerToken": SecurityScheme(
-    #                 type="http",
-    #                 scheme="bearer",
-    #             )
-    #         }
-    #     ),
-    # )
+    openapi_config=OpenAPIConfig(
+        title="my api",
+        version="1.0.0",
+        security=[{"BearerToken":[]}],
+        components=Components(
+            security_schemes = {
+                "BearerToken": SecurityScheme(
+                    type = "http",
+                    scheme = "bearer",
+                )
+            }
+        )
+    )
 )

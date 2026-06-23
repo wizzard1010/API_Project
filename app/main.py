@@ -14,6 +14,7 @@ from app.api.v1.accounts.controller import (
     Reset_password,
     Get_user_me,
     update_admin,
+    Get_admin_user,
     
 )
 
@@ -33,6 +34,7 @@ v1_router = Router(
         forget_password,
         Reset_password,
         Get_user_me,
+        Get_admin_user,
         update_admin
     ]
 )

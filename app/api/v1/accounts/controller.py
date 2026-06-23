@@ -7,7 +7,7 @@ from app.api.v1.accounts.service import (
     authenticate_user,
     user_access_token,
     generate_password_reset_with_token,
-    password_reset, update_admin_user)
+    password_reset, update_admin_user, role)
 
 from app.api.v1.accounts.dto import (
     RegisterRequest,
@@ -121,7 +121,31 @@ async def Get_user_me(
         updated_at= user.updated_at
     )
 
-@patch("admin/users/{user_id:uuid}", middleware = [jwt_auth.middleware], security=[{"BearerToken":[]}])
+@get("/users/admin", middleware=[jwt_auth.middleware], security=[{"BearerToken":[]}])
+async def Get_admin_user(
+    request:Request,
+    db_session:AsyncSession
+)-> UserResponse:
+    admin_user = request.user
+    
+    user = await db_session.get(User, admin_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    return UserResponse(
+        id = user.id,
+        email = user.email,
+        role = user.role,
+        is_active = user.is_active,
+        created_at= user.created_at,
+        updated_at= user.updated_at
+    )
+    
+
+@patch("/admin/users/{user_id:uuid}", middleware = [jwt_auth.middleware], security=[{"BearerToken":[]}])
 async def update_admin(
     user_id: UUID,
     data: AdminUserUpdate,

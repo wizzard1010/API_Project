@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from uuid import UUID
-
+from app.db.models.articles import ArticlesVisibility
 @dataclass
 class CreateArticle:
     title: str
@@ -8,6 +8,7 @@ class CreateArticle:
     category_id: UUID
     author_id: UUID
     photo_path: str
+    visibility: ArticlesVisibility = ArticlesVisibility.PUBLIC
     
 @dataclass
 class ArticleResponse:
@@ -17,5 +18,5 @@ class ArticleResponse:
     category_id:UUID
     author_id: UUID
     photo_path: str
-    
+    visibility: ArticlesVisibility
     

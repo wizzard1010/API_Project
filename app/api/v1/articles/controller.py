@@ -12,14 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.articles.dto import CreateArticle, ArticleResponse
 
-# @get("/articles")
-# async def articles_handler() -> dict[str, str]:
-#     return{"modules": "articles"}
-
-
-#still need for datetime and uploads#####
 @post("/articles")
-async def create_article(
+async def list_articles(
     data: CreateArticle,
     db_session: AsyncSession
 ) -> ArticleResponse:
@@ -31,6 +25,7 @@ async def create_article(
             category_id = data.category_id,
             author_id = data.author_id,
             photo_path = data.photo_path,
+            visibility= data.visibility,
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid article")
@@ -41,4 +36,5 @@ async def create_article(
         category_id= article.category_id,
         author_id = article.author_id,
         photo_path = article.photo_path,
+        visibility= article.visibility,
     )

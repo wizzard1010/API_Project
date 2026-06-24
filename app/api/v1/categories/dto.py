@@ -13,3 +13,8 @@ class CategoryResponse:
     id: UUID
     name: str
     slug: str
+    
+@dataclass
+class CategoriesUpdate:
+    name: str
+    slug: str

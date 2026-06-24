@@ -39,3 +39,4 @@ class ResetPassword:
 class AdminUserUpdate:
     role: str | None = None
     is_active: bool| None = None
+    

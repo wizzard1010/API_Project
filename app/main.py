@@ -1,6 +1,6 @@
 from litestar import Litestar, Router
 from litestar.openapi import OpenAPIConfig
-from litestar.openapi.spec import Components, SecurityScheme, Tag
+from litestar.openapi.spec import Components, SecurityScheme
 
 from app.db.config import sqlalchemy_plugin
 
@@ -15,13 +15,17 @@ from app.api.v1.accounts.controller import (
     Get_user_me,
     update_admin,
     Get_admin_user,
-    
 )
 
-from app.api.v1.categories.controller import Create_category
+from app.api.v1.categories.controller import(
+    list_category,
+    get_categories,
+    update_categories,
+    delete_category,
+)
 
 from app.api.v1.articles.controller import (
-    create_article
+    list_articles
 )
 
 v1_router = Router(
@@ -29,8 +33,11 @@ v1_router = Router(
     route_handlers=[
         register_user,
         Authenticate_user,
-        create_article,
-        Create_category,
+        list_articles,
+        list_category,
+        get_categories,
+        update_categories,
+        delete_category,
         forget_password,
         Reset_password,
         Get_user_me,

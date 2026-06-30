@@ -1,40 +1,145 @@
-from litestar import get, post, Router
+from litestar import get, post, Request, patch, delete
 from litestar.exceptions import HTTPException
 from uuid import UUID
-
-from app.db.models.articles import Article
-from app.api.v1.articles.service import create_articles
- 
-
-from pydantic import BaseModel
-from sqlalchemy import select
+from app.db.models.accounts import User, UserRole
+from app.api.v1.articles.service import (
+    create_articles, get_article_visibility, get_article_by_id, update_article, delete_articles)
+from app.api.v1.articles.security import get_user_from_header
+from app.db.models.articles import ArticlesVisibility
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.authentication import jwt_auth
+from typing import Optional
 
-from app.api.v1.articles.dto import CreateArticle, ArticleResponse
+from app.api.v1.articles.dto import CreateArticle, ArticleResponse, ArticleUpdate
 
-@post("/articles")
+def article_return(article)->ArticleResponse:
+    return ArticleResponse(
+        id=article.id,
+        title=article.title,
+        body=article.body,
+        category_id=article.category_id,
+        author_id=article.author_id,
+        photo_path=article.photo_path,
+        visibility=article.visibility
+    )
+
+@post("/articles", middleware=[jwt_auth.middleware], security=[{"BearerToken": []}])
 async def list_articles(
     data: CreateArticle,
+    request:Request,
     db_session: AsyncSession
-) -> ArticleResponse:
+)-> ArticleResponse:
+    token_user = request.user
+    user = await db_session.get(User, token_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # allow only ADMIN or AUTHOR
+    if not (user.role == UserRole.ADMIN or user.role == UserRole.AUTHOR):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    articles = await create_articles(
+        session= db_session,
+        title= data.title,
+        body = data.body,
+        category_id= data.category_id,
+        author_id= data.author_id,
+        visibility= data.visibility,
+        #photo_path= data.photo_path
+    )
+    return article_return(articles)
+
+@get("/articles")
+async def get_articles(
+    request: Request,
+    db_session: AsyncSession
+)-> list[ArticleResponse]:
+    is_private = False
+    
+    user = await get_user_from_header(
+        request= request,
+        db_session= db_session
+    )
+    if user and user.is_active:
+        is_private = True
+
+    article = await get_article_visibility(
+        session= db_session,
+        is_private= is_private
+    )
+    return [article_return(a)
+            for a in article]
+
+
+@get("/articles/{article_id:uuid}")
+async def get_article_id(
+    db_session:AsyncSession,
+    request: Request,
+    article_id: UUID,
+)-> ArticleResponse:
+    
+    article = await get_article_by_id(
+        session = db_session,
+        article_id = article_id
+    )
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if article.visibility == ArticlesVisibility.PUBLIC:
+        return article_return(article)
+    
+    user = await get_user_from_header(
+        request= request,
+        db_session= db_session
+    )
+    if not user or not user.is_active:
+        raise HTTPException(status_code= 404, detail="User not found")
+    
+    return article_return(article)
+
+#still need to do author
+@patch("/articles/{article_id:uuid}",middleware=[jwt_auth.middleware], security=[{"BearerToken":[]}])
+async def update_admin_author_article(
+    article_id: UUID,
+    data:ArticleUpdate,
+    request: Request,
+    db_session: AsyncSession
+)-> ArticleResponse:
+    token_user = request.user
+    admin_user = await db_session.get(User, token_user.id)
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Invalid user")
+    if admin_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Permission Denied")
+ 
     try: 
-        article = await create_articles(
+        article = await update_article(
             session = db_session,
+            article_id= article_id,
             title = data.title,
             body = data.body,
-            category_id = data.category_id,
-            author_id = data.author_id,
-            photo_path = data.photo_path,
-            visibility= data.visibility,
+            visibility= data.visibility
         )
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid article")
-    return ArticleResponse(
-        id = article.id,
-        title = article.title,
-        body = article.body,
-        category_id= article.category_id,
-        author_id = article.author_id,
-        photo_path = article.photo_path,
-        visibility= article.visibility,
-    )
+    except Exception:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return article_return(article)
+        
+#still need author
+@delete("/articles/{article_id:uuid}", status_code=200, middleware=[jwt_auth.middleware], security=[{"BearerToken": []}])
+async def delete_article(
+    article_id: UUID,
+    request:Request,
+    db_session: AsyncSession
+)-> Optional[None]:
+    token_user = request.user
+    admin_user = await db_session.get(User, token_user.id)
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Invalid user")
+    if admin_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Permission Denied")
+    try:
+        article = await delete_articles(
+            session=db_session,
+            article_id= article_id
+        )
+    except Exception:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return None
+    

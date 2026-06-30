@@ -24,6 +24,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from uuid import UUID
 
+def user_return(user) -> UserResponse:
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        role= user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
+    
 @post("/auth/register")
 async def register_user(
     data: RegisterRequest,
@@ -37,16 +47,7 @@ async def register_user(
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="User already exists")
-    
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        role= user.role,
-        is_active=user.is_active,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-    )
-    
+    return user_return(user)
 
 @post("/auth/login")
 async def Authenticate_user(
@@ -111,15 +112,7 @@ async def Get_user_me(
     
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    return UserResponse(
-        id = user.id,
-        email = user.email,
-        role = user.role,
-        is_active = user.is_active,
-        created_at= user.created_at,
-        updated_at= user.updated_at
-    )
+    return user_return(user)
 
 @get("/users/admin", middleware=[jwt_auth.middleware], security=[{"BearerToken":[]}])
 async def Get_admin_user(
@@ -134,15 +127,7 @@ async def Get_admin_user(
     
     if user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    return UserResponse(
-        id = user.id,
-        email = user.email,
-        role = user.role,
-        is_active = user.is_active,
-        created_at= user.created_at,
-        updated_at= user.updated_at
-    )
+    return user_return(user)
     
 
 @patch("/admin/users/{user_id:uuid}", middleware = [jwt_auth.middleware], security=[{"BearerToken":[]}])
@@ -168,13 +153,8 @@ async def update_admin(
         )
     except ValueError:
         raise HTTPException(status_code= 404, detail="Usernot found")
-    return UserResponse(
-        id = user.id,
-        email = user.email,
-        role = user.role,
-        is_active= user.is_active,
-        created_at= user.created_at,
-        updated_at= user.updated_at
-    )
+    return user_return(user)
+
+
     
     

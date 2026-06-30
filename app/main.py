@@ -7,6 +7,7 @@ from app.db.config import sqlalchemy_plugin
 
 from app.api.v1.health_check import health_check
 
+#User
 from app.api.v1.accounts.controller import (
     register_user,
     Authenticate_user,
@@ -17,6 +18,7 @@ from app.api.v1.accounts.controller import (
     Get_admin_user,
 )
 
+#Category
 from app.api.v1.categories.controller import(
     list_category,
     get_categories,
@@ -24,8 +26,13 @@ from app.api.v1.categories.controller import(
     delete_category,
 )
 
+#Article
 from app.api.v1.articles.controller import (
-    list_articles
+    list_articles,
+    get_articles,
+    get_article_id,
+    update_admin_author_article,
+    delete_article,
 )
 
 v1_router = Router(
@@ -42,7 +49,11 @@ v1_router = Router(
         Reset_password,
         Get_user_me,
         Get_admin_user,
-        update_admin
+        update_admin,
+        get_articles,
+        get_article_id,
+        update_admin_author_article,
+        delete_article,
     ]
 )
 

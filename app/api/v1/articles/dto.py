@@ -7,7 +7,7 @@ class CreateArticle:
     body: str
     category_id: UUID
     author_id: UUID
-    photo_path: str
+    #photo_path: str
     visibility: ArticlesVisibility = ArticlesVisibility.PUBLIC
     
 @dataclass
@@ -19,4 +19,10 @@ class ArticleResponse:
     author_id: UUID
     photo_path: str
     visibility: ArticlesVisibility
-    
+
+@dataclass
+class ArticleUpdate:
+    title: str
+    body:str
+    visibility: ArticlesVisibility
+

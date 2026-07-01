@@ -33,6 +33,7 @@ from app.api.v1.articles.controller import (
     get_article_id,
     update_admin_author_article,
     delete_article,
+    search_articles,
 )
 
 v1_router = Router(
@@ -54,6 +55,7 @@ v1_router = Router(
         get_article_id,
         update_admin_author_article,
         delete_article,
+        search_articles
     ]
 )
 

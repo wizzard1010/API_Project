@@ -8,7 +8,8 @@ from app.api.v1.articles.service import (
     get_article_by_id,
     update_article,
     delete_articles,
-    modify_article,)
+    modify_article,
+    search_article,)
 from app.api.v1.articles.security import get_user_from_header
 from app.db.models.articles import ArticlesVisibility, Article
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -161,4 +162,32 @@ async def delete_article(
     except Exception:
         raise HTTPException(status_code=404, detail="Article not found")
     return {"message": "article deleted successfully"}
+    
+@get("/articles/search")
+async def search_articles(
+    request:Request,
+    db_session: AsyncSession,
+    q : str | None,
+    #category: UUID | None,
+    page : int | None,
+    page_size : int | None,
+)-> list[ArticleResponse]: 
+    is_private = False
+    
+    user = await get_user_from_header(
+        request=request,
+        db_session=db_session
+    )
+    if user and user.is_active:
+        is_private = True
+    
+    article = await search_article(
+        session=db_session,
+        q = q,
+        #category= category,
+        page= page,
+        page_size=page_size
+    )
+    return [article_return(a)
+            for a in article]
     

@@ -102,4 +102,28 @@ async def delete_articles(
     
     return {"message": "article deleted successully"}
 
+async def search_article(
+    session: AsyncSession,
+    q: str | None,
+    #category: UUID | None,
+    page : int | None,
+    page_size: int | None,
+    is_private:bool = False
+)-> list[Article]:
     
+    query = select(Article)
+    if is_private:
+        query = query.where(Article.visibility == ArticlesVisibility.PUBLIC)
+    # if not category is not None:
+    #     query = query.where(Article.category_id == category)
+    
+    if q:
+        search_text = f"%{q}%"
+        query = query.where(
+            (Article.title.contains(search_text)) |
+            (Article.body.contains(search_text))
+        )
+    query = query.limit(page).offset(page_size)
+    
+    result = await session.execute(query)
+    return list(result.scalars().all())

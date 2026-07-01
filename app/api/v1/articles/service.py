@@ -4,11 +4,24 @@ from app.db.models.articles import Article, ArticlesVisibility
 from litestar.exceptions import HTTPException
 from uuid import UUID
 from datetime import datetime
+from app.db.models.accounts import User,UserRole
 
 def visibility(article: Article, visibility: list[ArticlesVisibility])-> None:
     if article.visibility not in visibility:
         raise HTTPException(status_code=403, detail="Invalid article")
+
+def modify_article(
+    user: User,
+    author_id: UUID
+)-> bool:
+    if user.role == "ADMIN":
+        return True
+    if user.role == "AUTHOR":
+        user.id = author_id
+    return True
     
+
+
 async def create_articles(
     session: AsyncSession,
     title: str,

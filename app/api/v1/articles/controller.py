@@ -3,9 +3,14 @@ from litestar.exceptions import HTTPException
 from uuid import UUID
 from app.db.models.accounts import User, UserRole
 from app.api.v1.articles.service import (
-    create_articles, get_article_visibility, get_article_by_id, update_article, delete_articles)
+    create_articles,
+    get_article_visibility,
+    get_article_by_id,
+    update_article,
+    delete_articles,
+    modify_article,)
 from app.api.v1.articles.security import get_user_from_header
-from app.db.models.articles import ArticlesVisibility
+from app.db.models.articles import ArticlesVisibility, Article
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.authentication import jwt_auth
 from typing import Optional
@@ -94,7 +99,7 @@ async def get_article_id(
     
     return article_return(article)
 
-#still need to do author
+#still need to do author ownership
 @patch("/articles/{article_id:uuid}",middleware=[jwt_auth.middleware], security=[{"BearerToken":[]}])
 async def update_admin_author_article(
     article_id: UUID,
@@ -104,9 +109,15 @@ async def update_admin_author_article(
 )-> ArticleResponse:
     token_user = request.user
     admin_user = await db_session.get(User, token_user.id)
+    
     if not admin_user:
         raise HTTPException(status_code=404, detail="Invalid user")
-    if admin_user.role != UserRole.ADMIN:
+    
+    article = await get_article_by_id(session=db_session, article_id=article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    if not modify_article(user=admin_user, author_id=article.author_id):
         raise HTTPException(status_code=403, detail="Permission Denied")
  
     try: 
@@ -121,25 +132,33 @@ async def update_admin_author_article(
         raise HTTPException(status_code=404, detail="Article not found")
     return article_return(article)
         
-#still need author
+#still need author owndership
 @delete("/articles/{article_id:uuid}", status_code=200, middleware=[jwt_auth.middleware], security=[{"BearerToken": []}])
 async def delete_article(
     article_id: UUID,
     request:Request,
     db_session: AsyncSession
-)-> Optional[None]:
+)-> dict[str, str]:
     token_user = request.user
     admin_user = await db_session.get(User, token_user.id)
     if not admin_user:
         raise HTTPException(status_code=404, detail="Invalid user")
-    if admin_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Permission Denied")
+
+    article = await get_article_by_id(session=db_session, article_id=article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    if not modify_article(
+        user=admin_user,
+        author_id=article.author_id
+    ):
+        raise HTTPException(status_code=403, detail="Permission denied")
     try:
-        article = await delete_articles(
+        await delete_articles(
             session=db_session,
-            article_id= article_id
+            article_id=article_id
         )
     except Exception:
         raise HTTPException(status_code=404, detail="Article not found")
-    return None
+    return {"message": "article deleted successfully"}
     

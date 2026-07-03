@@ -112,7 +112,7 @@ async def search_article(
 )-> list[Article]:
     
     query = select(Article)
-    if is_private:
+    if not is_private:
         query = query.where(Article.visibility == ArticlesVisibility.PUBLIC)
     # if not category is not None:
     #     query = query.where(Article.category_id == category)

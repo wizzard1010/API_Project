@@ -169,8 +169,8 @@ async def search_articles(
     db_session: AsyncSession,
     q : str | None,
     #category: UUID | None,
-    page : int | None,
-    page_size : int | None,
+    page : int = 1,
+    page_size : int = 10,
 )-> list[ArticleResponse]: 
     is_private = False
     
@@ -180,7 +180,7 @@ async def search_articles(
     )
     if user and user.is_active:
         is_private = True
-    
+
     article = await search_article(
         session=db_session,
         q = q,

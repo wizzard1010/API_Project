@@ -5,14 +5,14 @@ from app.db.models.category import Category
 from app.db.models.accounts import User
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-
+from sqlalchemy import delete
 from app.db.models.articles import Article, ArticlesVisibility
 
 
 DATABASE_URL = "postgresql+asyncpg://james:james123@db:5432/api_db"
 
 ADMIN_ID = UUID("0fcf018c-8d54-4c8e-bc1a-17e46068daa3")
-TECHNOLOGY_CATEGORY_ID = UUID("06c58a81-8e29-4fdd-a57d-40825e9dbdec")
+WEB_DEVELOPMENT_CATEGORY_ID = UUID("01b8778d-40f2-4060-b0c6-ea3829799ea3")
 
 
 articles_data = [
@@ -201,24 +201,25 @@ articles_data = [
 
 async def main() -> None:
     engine = create_async_engine(DATABASE_URL)
-    SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+    db_session = async_sessionmaker(engine, expire_on_commit=False)
 
-    async with SessionLocal() as session:
+    async with db_session() as session:
         articles = []
 
-        for item in articles_data:
+        for a in articles_data:
             article = Article(
-                title=item["title"],
-                body=item["body"],
-                category_id=TECHNOLOGY_CATEGORY_ID,
+                title=a["title"],
+                body=a["body"],
+                category_id=WEB_DEVELOPMENT_CATEGORY_ID,
                 author_id=ADMIN_ID,
-                visibility=item["visibility"],
-                photo_path=item["photo_path"],
+                visibility=a["visibility"],
+                photo_path=a["photo_path"],
                 created_at=datetime.now(),
                 updated_at=datetime.now(),
             )
             articles.append(article)
 
+        await session.execute(delete(Article))
         session.add_all(articles)
         await session.commit()
 

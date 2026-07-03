@@ -168,7 +168,7 @@ async def search_articles(
     request:Request,
     db_session: AsyncSession,
     q : str | None,
-    #category: UUID | None,
+    category: UUID | None,
     page : int = 1,
     page_size : int = 10,
 )-> list[ArticleResponse]: 
@@ -184,7 +184,7 @@ async def search_articles(
     article = await search_article(
         session=db_session,
         q = q,
-        #category= category,
+        category= category,
         page= page,
         page_size=page_size
     )
